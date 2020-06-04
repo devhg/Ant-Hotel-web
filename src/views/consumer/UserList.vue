@@ -4,55 +4,33 @@
       <a-form layout="inline">
         <a-row :gutter="48">
           <a-col :md="8" :sm="24">
-            <a-form-item label="房间编号">
-              <a-input v-model="queryParam.id" placeholder />
+            <a-form-item label="订单编号">
+              <a-input v-model="queryParam.roomId" />
             </a-form-item>
           </a-col>
           <a-col :md="8" :sm="24">
-            <a-form-item label="使用状态">
-              <a-select v-model="queryParam.status" placeholder="请选择" default-value="0">
-                <a-select-option value="0">全部</a-select-option>
-                <a-select-option value="1">关闭</a-select-option>
-                <a-select-option value="2">运行中</a-select-option>
-              </a-select>
+            <a-form-item label="用户名">
+              <a-input v-model="queryParam.name" />
             </a-form-item>
           </a-col>
-          <template v-if="advanced">
-            <a-col :md="8" :sm="24">
-              <a-form-item label="调用次数">
-                <a-input-number v-model="queryParam.callNo" style="width: 100%" />
-              </a-form-item>
-            </a-col>
-            <a-col :md="8" :sm="24">
-              <a-form-item label="更新日期">
-                <a-date-picker v-model="queryParam.date" style="width: 100%" placeholder="请输入更新日期" />
-              </a-form-item>
-            </a-col>
-            <a-col :md="8" :sm="24">
-              <a-form-item label="使用状态">
-                <a-select v-model="queryParam.useStatus" placeholder="请选择" default-value="0">
-                  <a-select-option value="0">全部</a-select-option>
-                  <a-select-option value="1">关闭</a-select-option>
-                  <a-select-option value="2">运行中</a-select-option>
-                </a-select>
-              </a-form-item>
-            </a-col>
-            <a-col :md="8" :sm="24">
-              <a-form-item label="使用状态">
-                <a-select placeholder="请选择" default-value="0">
-                  <a-select-option value="0">全部</a-select-option>
-                  <a-select-option value="1">关闭</a-select-option>
-                  <a-select-option value="2">运行中</a-select-option>
-                </a-select>
-              </a-form-item>
-            </a-col>
-          </template>
+          <!--          <template v-if="advanced">-->
+          <!--            <a-col :md="10" :sm="24">-->
+          <!--              <a-form-item label="住宿时间">-->
+          <!--                <a-date-picker v-model="queryParam.signTime" style="width: 100%" placeholder="请输入更新日期" />-->
+          <!--              </a-form-item>-->
+          <!--            </a-col>-->
+          <!--            <a-col :md="10" :sm="24">-->
+          <!--              <a-form-item label="退宿时间">-->
+          <!--                <a-date-picker v-model="queryParam.leaveTime" style="width: 100%" placeholder="请输入更新日期" />-->
+          <!--              </a-form-item>-->
+          <!--            </a-col>-->
+          <!--          </template>-->
           <a-col :md="!advanced && 8 || 24" :sm="24">
             <span
               class="table-page-search-submitButtons"
               :style="advanced && { float: 'right', overflow: 'hidden' } || {} "
             >
-              <a-button type="primary" @click="$refs.table.refresh(true)">查询</a-button>
+              <a-button type="primary" @click="handleSumbit(queryParam)">查询</a-button>
               <a-button style="margin-left: 8px" @click="() => queryParam = {}">重置</a-button>
               <a @click="toggleAdvanced" style="margin-left: 8px">
                 {{ advanced ? '收起' : '展开' }}
@@ -65,8 +43,44 @@
     </div>
 
     <div class="table-operator">
-      <a-button type="primary" icon="plus" @click="$refs.createModal.add()">新建</a-button>
-      <a-button type="dashed" @click="tableOption">{{ optionAlertShow && '关闭' || '开启' }} alert</a-button>
+      <a-button @click="showModal" class="new-btn" type="primary">
+        新建记录
+        <a-icon type="plus" />
+      </a-button>
+      <a-modal
+        title="新增记录"
+        :visible="visible"
+        @ok="handleInsert(queryParam1)"
+        @cancel="handleCancel"
+      >
+        <a-form :form="form">
+          <a-form-item label class="stepFormText">
+            <a-input v-model="queryParam1.orderId" name="orderId" />
+          </a-form-item>
+          <a-form-item label class="stepFormText">
+            <a-input v-model="queryParam1.userId" name="userId" />
+          </a-form-item>
+          <a-form-item label class="stepFormText">
+            <a-input v-model="queryParam1.name" name="name" />
+          </a-form-item>
+          <a-form-item label class="stepFormText">
+            <a-date-picker v-model="queryParam1.signTime" name="signTime" />
+          </a-form-item>
+          <a-form-item label class="stepFormText">
+            <a-date-picker v-model="queryParam1.leaveTime" name="leaveTime" />
+          </a-form-item>
+          <a-form-item label class="stepFormText">
+            <a-input v-model="queryParam1.roomId" name="roomId" />
+          </a-form-item>
+          <a-form-item label class="stepFormText">
+            <a-input v-model="queryParam1.cost" name="cost" />
+          </a-form-item>
+          <a-form-item label class="stepFormText">
+            <a-input v-model="queryParam1.coupon" name="coupon" />
+          </a-form-item>
+        </a-form>
+      </a-modal>
+      <!-- <a-button type="dashed" @click="tableOption">{{ optionAlertShow && '关闭' || '开启' }} alert</a-button> -->
       <a-dropdown v-action:edit v-if="selectedRowKeys.length > 0">
         <a-menu slot="overlay">
           <a-menu-item key="1">
@@ -97,12 +111,12 @@
       </span>
       <span slot="action" slot-scope="text, record">
         <template>
-          <a @click="handleSub(record)">详情</a>
+          <a @click="handleEdit(record)">详情</a>
         </template>
       </span>
     </a-table>
 
-    <create-form ref="createModal" @ok="handleOk" />
+    <!--    <create-form ref="createModal" @ok="handleOk" />-->
     <step-by-step-modal ref="modal" @ok="handleOk" />
   </a-card>
 </template>
@@ -113,6 +127,7 @@ import { STable, Ellipsis } from '@/components'
 import StepByStepModal from '@/views/list/modules/StepByStepModal'
 import CreateForm from '@/views/list/modules/CreateForm'
 import { getRoleList, getOrderList, getUserList } from '@/api/manage'
+import { UserListInsert, userSearch } from '../../api/manage'
 
 const statusMap = {
   0: {
@@ -146,8 +161,13 @@ export default {
       mdl: {},
       // 高级搜索 展开/关闭
       advanced: false,
+      visible: false,
+      form: this.$form.createForm(this),
       // 查询参数
       queryParam: {},
+      queryParam1: {},
+      // signTime:'',
+      // leaveTime:'',
       // 表头
       columns: [
         {
@@ -265,6 +285,50 @@ export default {
     // getRoleList({ t: new Date() })
   },
   methods: {
+    handleEdit(record) {
+      console.log(record.orderId)
+      this.$router.push({
+        path: '/consumer/UserDetail',
+        query: {
+          orderId: record.orderId
+        }
+      })
+    },
+    showModal() {
+      this.visible = true
+    },
+    handleInsert(queryParam1) {
+      this.queryParam1 = queryParam1
+      UserListInsert({
+        orderId: queryParam1.orderId,
+        userId: queryParam1.userId,
+        name: queryParam1.name,
+        signTime: queryParam1.signTime,
+        leaveTime: queryParam1.leaveTime,
+        roomId: queryParam1.roomId,
+        cost: queryParam1.cost,
+        coupon: queryParam1.coupon
+      }).then(res => {
+        console.log(res)
+        this.vueTable()
+        this.handleCancel()
+      })
+    },
+    handleCancel() {
+      this.visible = false
+    },
+    handleSumbit(queryParam) {
+      this.queryParam = queryParam
+      userSearch({ roomId: queryParam.roomId, name: queryParam.name })
+        .then(res => {
+          console.log(res)
+          this.loadData = res.data
+          this.loading = false
+        })
+        .catch(e => {
+          this.loading = false
+        })
+    },
     tableOption() {
       if (!this.optionAlertShow) {
         this.options = {
@@ -305,10 +369,7 @@ export default {
           this.loading = false
         })
     },
-    handleEdit(record) {
-      console.log(record)
-      this.$refs.modal.edit(record)
-    },
+
     handleSub(record) {
       if (record.status !== 0) {
         this.$message.info(`${record.no} 订阅成功`)

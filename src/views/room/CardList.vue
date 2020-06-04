@@ -3,15 +3,36 @@
     <a-list rowKey="id" :grid="{gutter: 24, lg: 3, md: 2, sm: 1, xs: 1}" :dataSource="dataSource">
       <a-list-item slot="renderItem" slot-scope="item">
         <template v-if="!item || item.roomId === undefined">
-          <a-button @click="testFun()" class="new-btn" type="dashed">
-            <a-icon type="plus" />新增房间
+          <a-button @click="showModal" class="new-btn" type="dashed">
+            <a-icon type="plus" />
           </a-button>
+          <a-modal title="新增房间" :visible="visible" @ok="handleSubmit" @cancel="handleCancel">
+            <a-form :form="form">
+              <a-form-item label="房间id" class="stepFormText">
+                <a-input v-model="roomId" name="roomId" />
+              </a-form-item>
+              <a-form-item label="状态" class="stepFormText">
+                <a-input v-model="roomStatus" name="roomStatus" />
+              </a-form-item>
+              <a-form-item label="房间类型" class="stepFormText">
+                <a-input v-model="roomType" name="roomType" />
+              </a-form-item>
+              <a-form-item label="物品" class="stepFormText">
+                <a-input v-model="things" name="things" />
+              </a-form-item>
+            </a-form>
+          </a-modal>
         </template>
         <template v-else>
           <a-card :hoverable="true">
             <a-card-meta>
               <a slot="title">{{ item.roomId }}</a>
-              <a-avatar class="card-avatar" slot="avatar" :src="'https://tvax1.sinaimg.cn/large/006nIlf0ly1gctol0wk14j30rm0gy419.jpg'" size="large" />
+              <a-avatar
+                class="card-avatar"
+                slot="avatar"
+                :src="'https://tvax1.sinaimg.cn/large/006nIlf0ly1gctol0wk14j30rm0gy419.jpg'"
+                size="large"
+              />
               <div class="meta-content" slot="description">
                 <p>房型: {{ item.roomType }}</p>
                 <p>
@@ -22,18 +43,40 @@
               </div>
             </a-card-meta>
             <template class="ant-card-actions" slot="actions">
-              <a @click="testFun()">查看记录</a>
-              <a @click="testFun()">语音通话</a>
+              <a
+                @click="showUpdateModal(item.roomId,item.roomStatus,item.roomType,item.things)"
+              >编辑房间</a>
+              <a @click="handleDelete(item.roomId)">删除房间</a>
             </template>
           </a-card>
         </template>
       </a-list-item>
     </a-list>
+    <a-modal title="修改房间" :visible="visible1" @ok="UpdateSubmit" @cancel="UpdateCancel">
+      <a-form :form="form1">
+        <a-form-item label="房间id" class="stepFormText">
+          <a-input name="roomId" v-model="roomId" />
+        </a-form-item>
+        <a-form-item label="状态" class="stepFormText">
+          <a-select style="width: 120px" v-model="roomStatus">
+            <a-select-option value="0">0</a-select-option>
+            <a-select-option value="1">1</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="房间类型" class="stepFormText">
+          <a-input name="roomType" v-model="roomType" />
+        </a-form-item>
+        <a-form-item label="物品" class="stepFormText">
+          <a-input name="things" v-model="things" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
 <script>
-import { getRoomList } from '../../api/manage'
+import { deleteRoom, getRoomList, updateRoom } from '../../api/manage'
+import { addRoom } from '../../api/manage'
 var dataSource = []
 
 export default {
@@ -42,6 +85,14 @@ export default {
     return {
       description:
         '段落示意：蚂蚁酒店服务设计平台 优秀的界面体验，无缝接入蚂蚁生态， 提供跨越设计与开发的酒店体验解决方案。',
+      visible: false,
+      visible1: false,
+      roomId: '',
+      roomStatus: '',
+      roomType: '',
+      things: '',
+      maskStyle: { backgroundColor: 'rgba(0,0,0,.45)' },
+      queryParam: {},
       linkList: [
         {
           icon: 'rocket',
@@ -73,18 +124,64 @@ export default {
         }
       ],
       extraImage: 'https://gw.alipayobjects.com/zos/rmsportal/RzwpdLnhmvDJToTdfDPe.png',
-      dataSource
+      dataSource,
+      form: this.$form.createForm(this),
+      form1: this.$form.createForm(this)
     }
   },
   created() {
     this.getData()
   },
   methods: {
+    showModal() {
+      this.visible = true
+    },
+    handleSubmit() {
+      addRoom({ roomId: this.roomId, roomStatus: this.roomStatus, roomType: this.roomType, things: this.things }).then(
+        res => {
+          console.log(res)
+          this.getData()
+          this.handleCancel()
+        }
+      )
+    },
+    handleCancel() {
+      this.visible = false
+    },
+    showUpdateModal(a, b, c, d) {
+      this.roomId = a
+      this.roomStatus = b
+      this.roomType = c
+      this.things = d
+      this.visible1 = true
+    },
+    UpdateSubmit() {
+      updateRoom({
+        roomId: this.roomId,
+        roomStatus: this.roomStatus,
+        roomType: this.roomType,
+        things: this.things
+      }).then(res => {
+        console.log(res)
+        this.getData()
+        this.UpdateCancel()
+      })
+    },
+    UpdateCancel() {
+      this.visible1 = false
+    },
+    handleDelete(roomId) {
+      deleteRoom({ roomId: roomId }).then(res => {
+        console.log(res)
+        this.getData()
+        this.$message.info('删除成功')
+      })
+    },
     testFun() {
-      this.$message.info('持续开发中！')
+      this.$message.info('开发中！')
     },
     getData() {
-      getRoomList({ hotelId: '37030301' }).then(res => {
+      getRoomList({ hotelId: '3703030' }).then(res => {
         // console.log(res)
         this.dataSource = res.data
         this.dataSource.unshift({})

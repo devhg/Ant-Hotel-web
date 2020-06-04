@@ -12,6 +12,17 @@ const api = {
   CanteenOrder: '/order/food',
   UserList: '/user/list',
   Record: '/user/inout',
-  RoomList: '/room/list'
+  RoomList: '/room/list',
+  AddRoom: '/room/add',
+  DeleteRoom:'/room/delete',
+  UpdateRoom:'/room/update',
+  UserSearch:'/user/userSearch',
+  InOutSearch:'/user/inoutSearch',
+  liveSearch:'/order/liveSearch',
+  foodSearch:'/order/foodSearch',
+  UserListInsert:'/user/insert',
+  getUser:'/user/one',
+  FitnessRecord:'/fitness/list',
+  SearchFitness:'/fitness/search'
 }
 export default api

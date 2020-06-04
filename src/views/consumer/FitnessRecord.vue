@@ -5,20 +5,32 @@
         <a-row :gutter="48">
           <a-col :md="8" :sm="24">
             <a-form-item label="用户编号">
-              <a-input v-model="queryParam.userId"  />
+              <a-input v-model="queryParam.roomId" />
             </a-form-item>
           </a-col>
           <a-col :md="8" :sm="24">
-            <a-form-item label="用户名">
-              <a-input v-model="queryParam.name"  />
+            <a-form-item label="用户姓名">
+              <a-input v-model="queryParam.name" />
             </a-form-item>
           </a-col>
+          <!--          <template v-if="advanced">-->
+          <!--            <a-col :md="10" :sm="24">-->
+          <!--              <a-form-item label="住宿时间">-->
+          <!--                <a-date-picker v-model="queryParam.signTime" style="width: 100%" placeholder="请输入更新日期" />-->
+          <!--              </a-form-item>-->
+          <!--            </a-col>-->
+          <!--            <a-col :md="10" :sm="24">-->
+          <!--              <a-form-item label="退宿时间">-->
+          <!--                <a-date-picker v-model="queryParam.leaveTime" style="width: 100%" placeholder="请输入更新日期" />-->
+          <!--              </a-form-item>-->
+          <!--            </a-col>-->
+          <!--          </template>-->
           <a-col :md="!advanced && 8 || 24" :sm="24">
             <span
               class="table-page-search-submitButtons"
               :style="advanced && { float: 'right', overflow: 'hidden' } || {} "
             >
-              <a-button type="primary" @click="handleSumbit(queryParam)">查询</a-button>
+              <a-button type="primary" @click="handleSubmit()">查询</a-button>
               <a-button style="margin-left: 8px" @click="() => queryParam = {}">重置</a-button>
               <a @click="toggleAdvanced" style="margin-left: 8px">
                 {{ advanced ? '收起' : '展开' }}
@@ -30,19 +42,46 @@
       </a-form>
     </div>
 
+    <div class="table-operator">
+      <a-dropdown v-action:edit v-if="selectedRowKeys.length > 0">
+        <a-menu slot="overlay">
+          <a-menu-item key="1">
+            <a-icon type="delete" />删除
+          </a-menu-item>
+          <!-- lock | unlock -->
+          <a-menu-item key="2">
+            <a-icon type="lock" />锁定
+          </a-menu-item>
+        </a-menu>
+        <a-button style="margin-left: 8px">
+          批量操作
+          <a-icon type="down" />
+        </a-button>
+      </a-dropdown>
+    </div>
     <a-table
       :loading="loading"
       :columns="columns"
       :pagination="pagination"
-      rowKey="orderId"
+      rowKey="updateTime"
       :dataSource="loadData"
     >
-      <span slot="action" slot-scope="text, record">
+      <!--      <span slot="type" slot-scope="type">-->
+      <!--        <a-tag-->
+      <!--          :color="type === 0 ? 'volcano' : (type === 1 ? 'green' : 'geekblue')"-->
+      <!--        >{{type === 0 ? '进入' : (type === 1 ? '离开' : '已过期')}}</a-tag>-->
+      <!--      </span>-->
+      <!-- <span slot="action" slot-scope="text, record">
         <template>
           <a @click="handleEdit(record)">详情</a>
+          <a-divider type="vertical" />
+          <a @click="handleSub(record)">入住登记</a>
         </template>
-      </span>
+      </span>-->
     </a-table>
+
+    <!--    <create-form ref="createModal" @ok="handleOk" />-->
+    <step-by-step-modal ref="modal" @ok="handleOk" />
   </a-card>
 </template>
 
@@ -51,25 +90,23 @@ import moment from 'moment'
 import { STable, Ellipsis } from '@/components'
 import StepByStepModal from '@/views/list/modules/StepByStepModal'
 import CreateForm from '@/views/list/modules/CreateForm'
-import { getRoleList, getFoodList } from '@/api/manage'
-import { foodSearch } from '../../api/manage'
+import { getRoleList, getOrderList, getRecord } from '@/api/manage'
+import { getFitness, inoutSearch, searchFitness, searFitness } from '../../api/manage'
+const formatterTime = val => {
+  return val ? moment(val).format('YYYY-MM-DD HH:mm:ss') : ''
+}
+const formatter = (val, dict) => {
+  return val ? dict[val] : ''
+}
 
 const statusMap = {
   0: {
     status: 'default',
-    text: '支付中'
+    text: '进入'
   },
   1: {
     status: 'processing',
-    text: '待支付'
-  },
-  2: {
-    status: 'success',
-    text: '已支付'
-  },
-  3: {
-    status: 'error',
-    text: '异常'
+    text: '离开'
   }
 }
 
@@ -89,53 +126,42 @@ export default {
       // 查询参数
       queryParam: {},
       // 表头
-      loading: true,
-      // 表头
       columns: [
         {
-          title: '订单编号',
-          dataIndex: 'orderId'
+          title: '用户Id',
+          dataIndex: 'userId'
         },
-        // {
-        //   title: '用户ID',
-        //   dataIndex: 'userId'
-        // },
         {
           title: '用户姓名',
           dataIndex: 'name'
         },
         {
-          title: '消费金额',
-          dataIndex: 'cost',
-          sorter: true,
-          needTotal: true,
-          customRender: text => text + ' RMB'
+          title: '房间号',
+          dataIndex: 'roomId'
+          // scopedSlots: { customRender: 'roomType' }
         },
         {
-          title: '用餐券',
-          dataIndex: 'coupon',
-          sorter: true,
-          needTotal: true,
-          customRender: text => text + ' RMB'
-        },
-        {
-          title: '生成时间',
+          title: '时间',
           dataIndex: 'onTime',
           sorter: true,
-          customRender: (val) => {return moment(val).format('YYYY-MM-DD HH:mm:ss')}
+          customRender: val => {
+            return moment(val).format('YYYY-MM-DD HH:mm:ss')
+          }
+          // needTotal: true,
+          // customRender: text => text + ' RMB'
         },
         {
-          title: '食物',
-          dataIndex: 'food',
-          scopedSlots: { customRender: 'status' }
-        },
-        {
-          title: '操作',
-          dataIndex: 'action',
-          width: '150px',
-          align: 'center',
-          scopedSlots: { customRender: 'action' }
+          title: '健身类型',
+          dataIndex: 'fitnessType'
+          // scopedSlots: { customRender: 'type' }
         }
+        // {
+        //   title: '操作',
+        //   dataIndex: 'action',
+        //   width: '150px',
+        //   align: 'center',
+        //   scopedSlots: { customRender: 'action' }
+        // }
       ],
       pagination: {
         pageSize: 10,
@@ -145,6 +171,8 @@ export default {
         showQuickJumper: true,
         pageSizeOptions: ['10', '20', '30', '40']
       },
+      loading: true,
+      // 加载数据方法 必须为 Promise 对象
       loadData: [],
       selectedRowKeys: [],
       selectedRows: [],
@@ -179,13 +207,14 @@ export default {
     // getRoleList({ t: new Date() })
   },
   methods: {
-    handleSumbit(queryParam){
-      this.queryParam=queryParam
-      foodSearch({userId: queryParam.userId,name:queryParam.name}).then(res => {
-        console.log(res)
-        this.loadData = res.data
-        this.loading = false
-      })
+    handleSubmit() {
+      // this.queryParam=queryParam
+      searchFitness({ roomId: this.queryParam.roomId, name: this.queryParam.name })
+        .then(res => {
+          console.log(res)
+          this.loadData = res.data
+          this.loading = false
+        })
         .catch(e => {
           this.loading = false
         })
@@ -220,7 +249,7 @@ export default {
       }
     },
     vueTable() {
-      getFoodList()
+      getFitness()
         .then(res => {
           console.log(res)
           this.loadData = res.data
@@ -231,14 +260,8 @@ export default {
         })
     },
     handleEdit(record) {
-      console.log(record.orderId)
-      this.$router.push({
-        path: '/order/foodDetail',
-        query: {
-          orderId: record.orderId
-        }
-      })
-      // this.$refs.modal.edit(record)
+      console.log(record)
+      this.$refs.modal.edit(record)
     },
     handleSub(record) {
       if (record.status !== 0) {

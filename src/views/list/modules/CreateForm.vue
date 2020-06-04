@@ -1,23 +1,32 @@
 <template>
   <a-modal
-    title="新建规则"
-    :width="640"
+    title="新增房间"
     :visible="visible"
-    :confirmLoading="confirmLoading"
     @ok="handleSubmit"
     @cancel="handleCancel"
   >
-    <a-spin :spinning="confirmLoading">
-      <a-form :form="form">
-        <a-form-item
-          label="描述"
-          :labelCol="labelCol"
-          :wrapperCol="wrapperCol"
-        >
-          <a-input v-decorator="['desc', {rules: [{required: true, min: 5, message: '请输入至少五个字符的规则描述！'}]}]" />
-        </a-form-item>
-      </a-form>
-    </a-spin>
+    <a-form :form="form">
+      <a-form-item
+        label="房间id"
+        class="stepFormText">
+        <a-input v-model="queryParam.roomId" name="roomId"/>
+      </a-form-item>
+      <a-form-item
+        label="状态"
+        class="stepFormText">
+        <a-input v-model="roomStatus" name="roomStatus"/>
+      </a-form-item>
+      <a-form-item
+        label="房间类型"
+        class="stepFormText">
+        <a-input v-model="roomType" name="roomType"/>
+      </a-form-item>
+      <a-form-item
+        label="物品"
+        class="stepFormText">
+        <a-input v-model="things" name="things"/>
+      </a-form-item>
+    </a-form>
   </a-modal>
 </template>
 
@@ -36,32 +45,26 @@ export default {
       visible: false,
       confirmLoading: false,
 
-      form: this.$form.createForm(this)
+      form: this.$form.createForm(this),
+      queryParam:{
+
+      }
     }
   },
   methods: {
-    add () {
-      this.visible = true
+    showModal(){
+      this.visible=true
     },
     handleSubmit () {
-      const { form: { validateFields } } = this
-      this.confirmLoading = true
-      validateFields((errors, values) => {
-        if (!errors) {
-          console.log('values', values)
-          setTimeout(() => {
-            this.visible = false
-            this.confirmLoading = false
-            this.$emit('ok', values)
-          }, 1500)
-        } else {
-          this.confirmLoading = false
-        }
+      addRoom({roomId:this.roomId,roomStatus:this.roomStatus,roomType: this.roomType,things:this.things}).then(res=>{
+        console.log(res)
+        this.getData()
+        this.handleCancel()
       })
     },
     handleCancel () {
       this.visible = false
-    }
+    },
   }
 }
 </script>

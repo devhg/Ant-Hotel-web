@@ -4,23 +4,27 @@
       <a-form layout="inline">
         <a-row :gutter="48">
           <a-col :md="8" :sm="24">
-            <a-form-item label="用户姓名">
-              <a-input v-model="queryParam.id" placeholder="请输入" />
+            <a-form-item label="房间编号">
+              <a-input v-model="queryParam.roomId" />
             </a-form-item>
           </a-col>
           <a-col :md="8" :sm="24">
-            <a-form-item label="住宿状态">
-              <a-select v-model="queryParam.useStatus" placeholder="请选择" default-value="0">
-                <a-select-option value="0">全部</a-select-option>
-                <a-select-option value="1">关闭</a-select-option>
-                <a-select-option value="2">运行中</a-select-option>
-              </a-select>
+            <a-form-item label="用户名">
+              <a-input v-model="queryParam.name" />
             </a-form-item>
           </a-col>
-          <a-col :md="8" :sm="24">
-            <a-form-item label="更新日期">
-              <a-date-picker v-model="queryParam.date" style="width: 100%" placeholder="请输入更新日期" />
-            </a-form-item>
+          <a-col :md="!advanced && 8 || 24" :sm="24">
+            <span
+              class="table-page-search-submitButtons"
+              :style="advanced && { float: 'right', overflow: 'hidden' } || {} "
+            >
+              <a-button type="primary" @click="handleSumbit(queryParam)">查询</a-button>
+              <a-button style="margin-left: 8px" @click="() => queryParam = {}">重置</a-button>
+              <a @click="toggleAdvanced" style="margin-left: 8px">
+                {{ advanced ? '收起' : '展开' }}
+                <a-icon :type="advanced ? 'up' : 'down'" />
+              </a>
+            </span>
           </a-col>
         </a-row>
       </a-form>
@@ -35,21 +39,18 @@
       <span slot="status" slot-scope="status">
         <a-tag
           :color="status === 0 ? 'volcano' : (status === 1 ? 'green' : 'geekblue')"
-        >{{status === 0 ? '已取消' : (status === 1 ? '进行中' : '已过期')}}</a-tag>
+        >{{status === 0 ? '已取消' : (status === 1 ? '进行中' : (status === 2 ? '预定中' : '已过期'))}}</a-tag>
       </span>
       <span slot="action" slot-scope="text, record">
         <template>
           <a @click="handleEdit(record)">详情</a>
           <a-divider type="vertical" />
-          <a
-            target="_blank"
-            :href="'http://221.2.177.95:50196/welcome?orderId=' + record.orderId"
-          >入住登记</a>
+          <a target="_blank" :href="'http://127.0.0.1:8081/welcome?orderId=' + record.orderId">入住登记</a>
         </template>
       </span>
     </a-table>
 
-    <create-form ref="createModal" @ok="handleOk" />
+    <!--    <create-form ref="createModal" @ok="handleOk" />-->
     <step-by-step-modal ref="modal" @ok="handleOk" />
   </a-card>
 </template>
@@ -60,6 +61,7 @@ import { STable, Ellipsis } from '@/components'
 import StepByStepModal from '@/views/list/modules/StepByStepModal'
 import CreateForm from '@/views/list/modules/CreateForm'
 import { getRoleList, getServiceList, test, getOrderList } from '@/api/manage'
+import { liveSearch } from '../../api/manage'
 
 const statusMap = {
   0: {
@@ -196,6 +198,18 @@ export default {
     this.vueTable()
   },
   methods: {
+    handleSumbit(queryParam) {
+      this.queryParam = queryParam
+      liveSearch({ roomId: queryParam.roomId, name: queryParam.name })
+        .then(res => {
+          console.log(res)
+          this.loadData = res.data
+          this.loading = false
+        })
+        .catch(e => {
+          this.loading = false
+        })
+    },
     tableOption() {
       if (!this.optionAlertShow) {
         this.options = {

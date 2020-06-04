@@ -163,6 +163,17 @@ export const asyncRouterMap = [
               permission: ['table']
             },
           },
+          {
+            path: '/consumer/fitness',
+            name: 'FitnessWrapper',
+            hideChildrenInMenu: true, // 强制显示 MenuItem 而不是 SubMenu
+            component: () => import('@/views/consumer/FitnessRecord'),
+            meta: {
+              title: '健身记录',
+              keepAlive: true,
+              permission: ['table']
+            },
+          },
         ]
       },
 
@@ -215,7 +226,17 @@ export const asyncRouterMap = [
               keepAlive: false,
               title: '餐饮详情'
             }
-          }
+          },
+          {
+            path: '/consumer/UserDetail',
+            name: 'UserAdvanced',
+            hidden: true,
+            component: () => import('@/views/consumer/advanced/UserAdvanced'),
+            meta: {
+              keepAlive: false,
+              title: '用户详情'
+            }
+          },
         ]
       },
 
